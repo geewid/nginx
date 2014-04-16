@@ -1,0 +1,37 @@
+server {
+	server_name www.vhost;
+	return 301 $scheme://vhost$request_uri;
+}
+
+server {
+	server_name vhost;
+	access_log /var/www/vhost/logs/access.log;
+	error_log /var/www/vhost/logs/error.log;
+	root /var/www/vhost/public_html;
+	index index.php index.html index.htm;
+
+	include conf.d/incs.cnf;
+#	include conf.d/wordpress.cnf;
+#	include conf.d/w3tc.cnf;
+
+	location / {
+#		try_files /wp-content/cache/page_enhanced/${host}${cache_uri}_index.html $uri $uri/ /index.php?$args;
+		try_files $uri $uri/ /index.php$args;
+	}
+
+	location ~ \.php$ {
+		try_files $uri =404;
+
+		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+		fastcgi_index index.php;
+
+		fastcgi_param PATH_INFO	  $fastcgi_path_info;
+		fastcgi_param PATH_TRANSLATED   $document_root$fastcgi_path_info;
+		fastcgi_param SCRIPT_FILENAME   $document_root$fastcgi_script_name;
+		include /etc/nginx/fastcgi_params;
+
+		fastcgi_pass unix:/var/run/php-fpm/vhost.socket;
+	}
+
+}
+
