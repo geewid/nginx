@@ -46,4 +46,3 @@ if (!-f "$document_root/wp-content/cache/page_enhanced/$http_host/$request_uri/_
 if ($w3tc_rewrite = 1) {
 	rewrite .* "/wp-content/cache/page_enhanced/$http_host/$request_uri/_index$w3tc_rewrite.html" last;
 }
-
