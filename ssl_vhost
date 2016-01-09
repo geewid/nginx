@@ -1,60 +1,61 @@
 server {
 	listen 80;
-	server_name VHOST
-	return 301 https://$server_name$request_uri;
+	server_name vhost www.vhost
+	return 301 https://vhost$request_uri;
+}
+
+server {
+    listen 443;
+    server_name www.vhost;
+
+    ssl on;
+    ssl_certificate /etc/ssl/vhost/vhost.crt;
+    ssl_certificate_key /etc/ssl/vhost/vhost.key;
+
+    return 301 https://vhost$request_uri;
 }
 
 server {
 	listen 443;
-	server_name VHOST;
-	access_log /var/log/nginx/VHOST.access.log;
-	error_log /var/log/nginx/VHOST.error.log;
-	root /var/www/webmail;
+	server_name vhost;
+	access_log /var/log/nginx/vhost-access.log;
+	error_log /var/log/nginx/vhost-error.log;
+	root /var/www/vhost/public_html;
+	index index.php index.html index.htm;
 
 	ssl	on;
-	ssl_certificate	/etc/ssl/VHOST/VHOST.crt;
-	ssl_certificate_key /etc/ssl/VHOST/VHOST.key;
+	ssl_certificate	/etc/ssl/vhost/vhost.crt;
+	ssl_certificate_key /etc/ssl/vhost/vhost.key;
 
 	ssl_stapling on;
 	ssl_stapling_verify on;
 	resolver 8.8.8.8 8.8.4.4 valid=300s;
 	resolver_timeout 5s;
 	ssl_trusted_certificate /etc/ssl/ca-bundle.pem;
+	
+	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
 
 	include conf.d/incs.cnf;
-	add_header Strict-Transport-Security max-age=31536000;		
+#	include conf.d/wordpress.cnf;
+#	include conf.d/w3tc.cnf;
 
-
-    location / {
-        index  index.html index.htm index.php;
-    }
-
-	location /mailadmin {
-        root /var/www;
-        index index.php index.html index.htm;
-        location ~ ^/mailadmin/(.+\.php)$ {
-            try_files $uri =404;
-            root /var/www;
-            fastcgi_pass unix:/var/run/php5-fpm.sock;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include /etc/nginx/fastcgi_params;
-        }
-        location ~* ^/mailadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
-            root /var/www;
-        }
-    }
+	location / {
+#		try_files /wp-content/cache/page_enhanced/${host}${cache_uri}_index.html $uri $uri/ /index.php?$args;
+		try_files $uri $uri/ /index.php$args;
+	}
 
 	location ~ \.php$ {
-		try_files $uri =404;
- 
+		try_files $uri /index.php =404;
+
 		fastcgi_split_path_info ^(.+\.php)(/.+)$;
+		fastcgi_index index.php;
+
+		fastcgi_param PATH_INFO	  $fastcgi_path_info;
+#		fastcgi_param PATH_TRANSLATED   $document_root$fastcgi_path_info;
+		fastcgi_param SCRIPT_FILENAME   $document_root$fastcgi_script_name;
 		include /etc/nginx/fastcgi_params;
- 
-		fastcgi_param PATH_INFO       $fastcgi_path_info;
-		fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;
-		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
- 
-		fastcgi_pass unix:/var/run/php5-fpm.sock;
+
+		fastcgi_pass unix:/var/run/php-fpm/vhost.socket;
 	}
+
 }
